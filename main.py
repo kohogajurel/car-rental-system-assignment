@@ -86,9 +86,39 @@ def add_customer():
         except ValueError:
             print("Invalid date format. Please use DD/MM/YYYY")
 
-    fname = input("First name: ")
-    lname = input("Last name: ")
-    email = input("Email: ")
+    if (
+        datetime.datetime.now().year - datetime.datetime.strptime(dob, "%d/%m/%Y").year
+        < 18
+        or datetime.datetime.now().year
+        - datetime.datetime.strptime(dob, "%d/%m/%Y").year
+        > 75
+    ):
+        print("Customer should be between 18 and 75 years old to rent a car.")
+        return
+
+    customers = read_customers()
+    if any(c["dob"] == dob for c in customers):
+        print("Customer details already exists.")
+        return dob
+
+    while True:
+        fname = input("First name: ").strip().upper()
+        if any(c.isdigit() for c in fname):
+            print("Name cannot contain numbers. Please try again.")
+            continue
+        break
+    while True:
+        lname = input("Last name: ").strip().upper()
+        if any(c.isdigit() for c in lname):
+            print("Name cannot contain numbers. Please try again.")
+            continue
+        break
+
+    while True:
+        email = input("Email: ").strip()
+        if '@' in email and '.' in email and len(email) > 3:
+            break
+        print("Invalid email format. Please enter a valid email address.")
 
     with open("customers.txt", "a") as f:
         f.write(f"{dob},{fname},{lname},{email}\n")
@@ -110,10 +140,11 @@ def rent_car():
         reg = input("\nEnter registration number of car to rent: ")
         if any(r["reg"] == reg for r in rented):
             print("This car is already rented.")
-            continue
+            return
         if any(car["reg"] == reg for car in available):
             break
         print("Invalid registration number. Please try again.")
+        return
 
     dob = add_customer()
 
@@ -127,7 +158,7 @@ def rent_car():
 def return_car():
     reg = input("\nEnter registration number of car to return: ")
 
-    # Find rental record
+    
     rented = read_rented()
     rental = None
     for r in rented:
@@ -139,25 +170,25 @@ def return_car():
         print("No rental found for this registration number.")
         return
 
-    # Calculate rental duration and cost
+    
     vehicles = read_vehicles()
     car = next(v for v in vehicles if v["reg"] == reg)
 
     start_time = datetime.datetime.strptime(rental["start_time"], "%d/%m/%Y %H:%M")
     end_time = datetime.datetime.now()
 
-    # Calculate days (counting partial days as full days)
+    
     days = (end_time - start_time).days + 1
     cost = days * car["rate"]
 
-    # Record transaction
+    
     with open("transActions.txt", "a") as f:
         f.write(
             f"{reg},{rental['customer_dob']},{rental['start_time']},"
             f"{end_time.strftime('%d/%m/%Y %H:%M')},{days},{cost:.2f}\n"
         )
 
-    # Remove from rented vehicles
+    
     with open("rentedVehicles.txt", "r") as f:
         lines = f.readlines()
     with open("rentedVehicles.txt", "w") as f:
